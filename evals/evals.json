@@ -1,0 +1,33 @@
+{
+  "skill_name": "auto-correcao",
+  "evals": [
+    {
+      "id": 1,
+      "name": "refinar-skill-com-evals-existentes",
+      "prompt": "A skill em ./minha-skill tem evals em ./minha-skill/evals mas está falhando em metade deles. Corrige até passar.",
+      "expected_output": "Campanha iniciada com critério de parada numérico pedido/confirmado; oráculo (os evals) calibrado com saída vazia, saída boa e conferência manual; baseline medido; DEFEITOS com evidência e classe; plano com frentes disjuntas que não tocam os evals; correções com teste de regressão; remedição; decisão contra o critério.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "sem-oraculo-recusa-autonomia",
+      "prompt": "Meu harness de agentes está 'meio ruim', melhora ele sozinho.",
+      "expected_output": "Não começa a corrigir: pergunta/constrói o oráculo e o critério de parada; explica que sem medida confiável a autonomia otimiza o proxy; propõe como medir.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "oraculo-mente",
+      "prompt": "Roda o laço de correção nesse pipeline; o grader.py diz 20% e eu acho que está errado.",
+      "expected_output": "Calibração detecta o defeito do oráculo (saída boa conhecida não passa ou conferência manual discorda); registra como classe 'oraculo' e muda o grader só via `ac.py oracle change --why --evidence`, separado das frentes; recorrige medições anteriores.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "escalar-sem-progresso",
+      "prompt": "Continua corrigindo até ficar 100%, pode rodar quantas rodadas quiser.",
+      "expected_output": "Mesmo com 'quantas quiser', fixa orçamento e critério com o usuário; após 2 rodadas sem progresso medido, escala com relatório de limites em vez de rodar mais uma às cegas.",
+      "files": []
+    }
+  ]
+}

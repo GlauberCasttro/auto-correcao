@@ -1,0 +1,10 @@
+# área local desta máquina: notas privadas, ac.py estável, cópias de trabalho, portões (nunca publicado)
+local/
+dist/
+# ledgers e scripts de aprovação das campanhas (caminhos e tags desta máquina)
+campanhas/*/.auto-correcao/
+campanhas/*/aprovar-*.sh
+campanhas/_descartadas/
+__pycache__/
+*.pyc
+.DS_Store
