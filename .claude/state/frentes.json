@@ -22,6 +22,26 @@
       "ac_estavel": "local/ac-estavel/scripts/ac.py",
       "commit": "3e81f493d44532a6f4d3196ab89e1271f0031e2a",
       "fechada_em": "2026-10-08T12:58:22Z"
+    },
+    {
+      "nome": "win-hook",
+      "status": "entregue",
+      "campanha": "campanhas/win-hook",
+      "copia": "local/work/win-hook/auto-correcao",
+      "scope": [
+        "scripts/hook_aprovacao.py",
+        "scripts/tests/**",
+        "SKILL.md",
+        "README.md",
+        "docs/**"
+      ],
+      "problema": "Hook de aprovação cego no Windows (AC-18): H1 só analisa tool_name Bash — a ferramenta PowerShell passa direto (hook_aprovacao.py:259); H2 INTERPRETER_RE não casa python.exe, py, py -3 nem & 'C:\\...\\python.exe' (:154); H3 APROVAR_RE não pega caminho com barra invertida ('scripts\\aprovar-x.sh', .\\aprovar-x.sh) (:56); H4 docs mandam registrar o hook com matcher Bash (tem de ser Bash|PowerShell).",
+      "parada": "1) oráculo da frente 100% verde no Windows (Git Bash e PowerShell) e no WSL; 2) selftest: os 83 casos atuais com o mesmo veredito + os novos, nos dois; 3) scripts/tests sem falha nova; 4) prova real: hook registrado com matcher Bash|PowerShell no settings do projeto, um gate pela ferramenta PowerShell numa sessão Claude Code no Windows é negado",
+      "paralela": false,
+      "aberta_em": "2026-10-08T13:15:24Z",
+      "ac_estavel": "local/ac-estavel/scripts/ac.py",
+      "commit": "30e2da64d651219ba61dae91c27035d4451fecc4",
+      "fechada_em": "2026-10-08T15:06:03Z"
     }
   ]
 }

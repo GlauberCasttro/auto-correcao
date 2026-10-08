@@ -8,6 +8,7 @@ Frente = campanha auto-correcao orquestrada pelo ac.py ESTÁVEL. Uma ativa por v
 - nenhuma (abra com a skill new-front)
 
 ### Últimas entregas
+- win-hook — commit `30e2da6` em 2026-10-08T15:06:03Z
 - win-motor — commit `3e81f49` em 2026-10-08T12:58:22Z
 <!-- frentes:fim -->
 

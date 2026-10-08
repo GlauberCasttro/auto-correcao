@@ -3,6 +3,15 @@
 <!-- carimbo:inicio -->
 <!-- carimbo:fim -->
 
+## Onde paramos (2026-10-08, tarde) — frente win-hook entregue
+- `30e2da6`: hook de aprovação vê a ferramenta PowerShell e o Windows (AC-18). Campanha `campanhas/win-hook` concluída
+  (PARAR): oráculo 17/17 + 12 guardas em Windows (Git Bash, PowerShell) e WSL; selftest 135/135; prova real numa
+  sessão `claude -p` com o hook em `.claude/settings.local.json` (local, matcher Bash|PowerShell): gate via
+  PowerShell NEGADO. Juiz (`local/ac-estavel`) trocado para `d4e63e0` (motor com win-motor).
+- Pendências do founder: push da branch `release/version-windows`.
+- Próximo: AC-24 (2 brechas antigas do Bash no hook), AC-25 (save com retentativa no Windows), AC-20 (harness
+  nativo), AC-23 (frentes.json com caminho absoluto — corrigido à mão a cada fechamento).
+
 ## Onde paramos (2026-10-08) — frente win-motor entregue (Windows)
 - Branch **`release/version-windows`** (pedido do founder). Commit da frente: `3e81f49` (10 arquivos: frase.py,
   ac.py, scripts/tests/*, .gitattributes, SKILL.md, README.md, docs/04). Campanha `campanhas/win-motor` concluída
