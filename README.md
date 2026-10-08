@@ -34,14 +34,15 @@ ln -s "$PWD" ~/.claude/skills/auto-correcao        # rodado na raiz do projeto
 
 ### Hook global de aprovação (uma vez por máquina)
 Acrescente ao `~/.claude/settings.json` (mesclando com os `hooks` que já existirem). O caminho passa pelo link, então
-continua valendo quando o projeto muda de lugar:
+continua valendo quando o projeto muda de lugar. O matcher inclui `PowerShell` porque, no Windows, o Claude Code
+tem essa ferramenta além da `Bash`:
 
 ```json
 {
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",

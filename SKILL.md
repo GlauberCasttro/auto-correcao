@@ -59,8 +59,8 @@ Em zsh, não guarde o comando numa variável (não divide palavras): use uma fun
 Versão: v0.4 (frase-senha; `scripts/frase.py` é o módulo compartilhado). `init --scope` com vírgula é recusado
 (um glob por `--scope`, repetindo a flag). Campanhas com escopos disjuntos podem se sobrepor (L17): `ac.py --work A overlap --other B`
 (`--other` repetível; colisão = exit 1 citando o glob). Hook de aprovação: `scripts/hook_aprovacao.py`
-(PreToolUse, matcher `Bash`, em `~/.claude/settings.json` ou `.claude/settings.json`; `--selftest` → exit 0)
-nega ao agente `ac.py … gate|preauth|frase` e `co.py … approve`. Cada aprovação grava auditoria (com `seq`,
+(PreToolUse, matcher `Bash|PowerShell` — no Windows o Claude Code tem a ferramenta PowerShell além da Bash —, em
+`~/.claude/settings.json` ou `.claude/settings.json`; `--selftest` → exit 0) nega ao agente `ac.py … gate|preauth|frase` e `co.py … approve`. Cada aprovação grava auditoria (com `seq`,
 `estado_hash` e `tag`) em `$AC_AUDIT_LOG`
 (caminho fora da campanha). `done` mantém `etapa:` no `status` (`concluida` ao fim); `run record` recusa
 `quality.total` diferente da base (L02).
@@ -70,6 +70,9 @@ Leia uma vez `references/licoes.json5` (o que custou caro aprender) antes da pri
 `python $AC/scripts/ac.py --work <campanha> status` (PowerShell: `py -3 <skill>\scripts\ac.py --work <campanha> status`).
 A frase de `gate`/`preauth`/`frase` só entra pelo console, sem eco: o founder digita no PowerShell ou no Windows
 Terminal. No Git Bash (mintty não é console), `winpty python $AC/scripts/ac.py ...`; sem isso, exit 2.
+Hook no Windows nativo (`python`, não `python3`; matcher com `PowerShell`, senão o agente aprova por lá):
+`{"matcher": "Bash|PowerShell", "hooks": [{"type": "command", "command": "python \"%USERPROFILE%/.claude/skills/auto-correcao/scripts/hook_aprovacao.py\""}]}`.
+O hook é filtro, não sandbox: a trava real é a frase.
 
 ## Execução em etapas (uma janela de contexto por etapa)
 

@@ -284,12 +284,17 @@ diferentes não colidem (L17).
 Hook PreToolUse (JSON do payload na stdin). Bloqueia (exit 2) `Bash` que invoque `ac.py … gate|preauth` ou
 `co.py … approve`, com ou sem `agent_id`, inclusive por caminho absoluto/`~`, `python3 -m ac`, aspas, `sh -c`,
 `;`/`&&`/`|`, `$AC` não resolvido e `runpy`. Permite `status|check|done|run record`, comandos alheios e
-ferramentas não-Bash. `--selftest` → exit 0. Instalação em `settings.json`:
+ferramentas não-Bash. `--selftest` → exit 0. Instalação em `settings.json` (o matcher inclui `PowerShell` porque,
+no Windows, o Claude Code tem essa ferramenta além da `Bash`):
 
 ```json
-{"hooks": {"PreToolUse": [{"matcher": "Bash",
+{"hooks": {"PreToolUse": [{"matcher": "Bash|PowerShell",
   "hooks": [{"type": "command", "command": "python3 ~/.claude/skills/auto-correcao/scripts/hook_aprovacao.py"}]}]}}
 ```
+
+No Windows nativo use `python` (ou `py -3`), não `python3`:
+`python "%USERPROFILE%\.claude\skills\auto-correcao\scripts\hook_aprovacao.py"` no `command`.
+O hook é filtro, não sandbox: a trava real é a frase.
 
 Limite honesto: quem controla o terminal do founder ou desativa o hook ainda aprova; é custo e rastro, não
 prova de identidade (L18).
