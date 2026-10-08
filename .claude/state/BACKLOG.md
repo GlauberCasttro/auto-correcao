@@ -21,6 +21,8 @@ portão verde nos 2 Pythons, commit conferido × portão.
 | AC-17 | `ac.py init` numa campanha que JÁ EXISTE re-inicializa em silêncio: sobrescreve problem/stop/scope de outra frente; um oracle freeze e aprovações gravados depois ficam presos ao estado errado | 2026-10-06: duas sessões abriram `campanhas/iter18` no mesmo projeto com minutos de diferença; a dona recuperou com cópia do estado + re-init + reaprovação | `init` em diretório com `.auto-correcao/state.json` recusa (exit≠0) citando a campanha existente; `--force` só com motivo registrado no ledger e invalidando portões já aprovados; teste |
 | AC-13 | hook nega comandos legítimos com `$AC` (variável atribuída no próprio comando) + subcomando; `$(...)` citando `hook_aprovacao.py` | 2026-10-05 | resolver variável atribuída no mesmo comando; nome de arquivo citado não é código |
 | — | trocar o critério de parada (`stop`) não invalida o portão `stop` | PENDENTE v0.5 | portão `stop` volta a pendente quando `stop` muda |
+| AC-18 | Hook de aprovação no Windows: matcher só `Bash` (a ferramenta **PowerShell** do Claude Code passa direto); `INTERPRETER_RE` não casa `python.exe`/`py`; `APROVAR_RE` não pega caminho com `\` entre aspas (hook_aprovacao.py:259, :154, :56) | auditoria Windows 2026-10-07 (frente win-motor, pendência 4 do ESPEC) | testes do selftest com payload `tool_name: PowerShell`, `python.exe ac.py gate`, `py -3 ... gate` e `'scripts\aprovar-x.sh'` ⇒ negados; nenhum SELF_ALLOW vira negado. Frente SEPARADA (hook global) |
+| AC-20 | Harness de dev (`.claude/tools`) não roda nativo no Windows: `subprocess(["python3", …])` (atalho não-.exe ⇒ FileNotFoundError) e `["bash", …]` (cai no bash do WSL) em frente.py:126,129,170; `python3`/`/usr/bin/python3` fixos em portao/verificar-harness/script-aprovacao; script de aprovação gerado em modo texto. Na win-motor o processo inteiro rodou pela WSL por isso | campanha win-motor 2026-10-08 | `frente.py open/close`, `portao.sh` e `script-aprovacao.py` rodam no Git Bash do Windows com `python`; testes do harness verdes no Windows e no WSL |
 | L19–L23 | lições novas a gravar em `references/licoes.json5` (L19 sobreajuste a mutantes vistos; L20 100% dos testes ≠ força; L21 testes gerados do contrato; L22 oráculo antigo segura o produto; L23 portão em cópia limpa) | PENDENTE v0.5 | entradas no licoes.json5 com fonte; testes que validam o json5 verdes |
 
 ## P2
@@ -30,6 +32,11 @@ portão verde nos 2 Pythons, commit conferido × portão.
 | — | `results compare` não separa base × remedição por rodada | PENDENTE v0.5 | coluna base × remedição |
 | AC-11 | documentar a migração v0.3→v0.4 (`frase conferir --assinar-legado`) | rollout v0.4 | seção em docs/ |
 | — | regra de processo: cada achado de verificador/mutação que reabre correção = rodada nova no ac.py | onda1 | escrito em docs + checado (se der) |
+| AC-19 | Windows: `msvcrt.getwch` devolve U+00E0 tanto para o prefixo de tecla estendida quanto para "à"; frase com "à" não confere entre posix e Windows (falha fechada). Documentar ou resolver (ex.: `kbhit` logo após o prefixo) | frente win-motor (f-frase), 2026-10-08 | SKILL.md/docs avisam; ou teste com "à" digitado verde sem quebrar o descarte de setas |
+| AC-23 | `frente.py open` grava caminhos ABSOLUTOS em `frentes.json` (`campanha`, `copia`, `ac_estavel`): no clone de qualquer máquina vaza o caminho do usuário e o `commit-state.sh` recusa (guard de privacidade). Na win-motor os 3 campos foram trocados à mão por relativos à raiz | commit do estado da win-motor, 2026-10-08 | `frente.py` grava relativo à raiz e resolve na leitura; teste: open → frentes.json sem caminho absoluto |
+| AC-21 | `json5_load` do ac.py recusa `\'` dentro de string (válido em JSON5): DEFEITOS.json5 escrito à mão com `'\\'` deu `Invalid \escape` | campanha win-motor 2026-10-08 | teste com `\'` e `\\` em string json5 |
+| AC-22 | Restos do Windows fora do oráculo da win-motor: `human_channel` (ac.py ~424) é código morto com `os.ttyname`; `chk_plan` usa `os.path.relpath`/`os.sep`; `fnmatch` sem caixa no Windows | ESPEC win-motor, pendências 1–2 | remover o morto; chk_plan normaliza separador; teste no Windows |
+| — | Processo: na win-motor o achado D-0-10 (stdin NUL) reabriu a correção DENTRO da rodada 0 (devolvido à f-frase), não numa rodada nova; registrado no DEFEITOS e no relatório | campanha win-motor 2026-10-08 | decidir se a regra "reabre ⇒ rodada nova" vira check do ac.py |
 
 ## Harness de desenvolvimento
 | Prio | Item | Critério de pronto |
@@ -40,3 +47,6 @@ portão verde nos 2 Pythons, commit conferido × portão.
 
 ## Resolvidos (referência)
 AC-01..AC-07 tratados na v0.3/v0.4 (`5800ed2`, `6e5dc67`; AC-02 e AC-05 citados no código), AC-04 virou o hook global.
+win-motor (2026-10-08, `3e81f49`, branch `release/version-windows`): motor roda no Windows nativo — frase pelo console
+(W1, D-0-10), cp1252 (W2), hash do oráculo neutro a CRLF (W3a), `.gitattributes` (W3b), `os.ttyname` (W4), SKILL/docs
+(W5), suíte importa sem pty (W6), barra invertida no overlap (W7). Oráculo 0/24 → 24/24 em Windows e WSL.

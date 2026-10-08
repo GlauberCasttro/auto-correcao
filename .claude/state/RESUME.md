@@ -3,6 +3,20 @@
 <!-- carimbo:inicio -->
 <!-- carimbo:fim -->
 
+## Onde paramos (2026-10-08) — frente win-motor entregue (Windows)
+- Branch **`release/version-windows`** (pedido do founder). Commit da frente: `3e81f49` (10 arquivos: frase.py,
+  ac.py, scripts/tests/*, .gitattributes, SKILL.md, README.md, docs/04). Campanha `campanhas/win-motor` concluída
+  (decisão PARAR): oráculo 0/24 → 24/24 em Windows (Git Bash e PowerShell, Python 3.12, sem PYTHONUTF8) e WSL
+  (3.10); scripts/tests 101 OK no Windows (57 pulados por pty) e no WSL sem falha nova; selftest 83/83.
+  Critério 4 (founder aprova gate no PowerShell) provado em `local/runs/win-motor/prova-powershell`.
+- Máquina Windows: o processo do harness rodou pela **WSL** (Ubuntu, python3 3.10; o harness chama python3/bash por
+  subprocess — AC-20). Repo com `core.autocrlf=input` e `core.eol=lf` locais; worktree convertido para LF.
+  Autor local `GlauberCasttro` (noreply). Travas de privacidade instaladas; `local/termos-privados.txt` AUSENTE.
+  Frase do founder definida nos DOIS ambientes (WSL `~/.claude/...`, Windows `%USERPROFILE%\.claude\...`).
+- Pendências do founder: push da branch; `git update-index --really-refresh` (69 arquivos com cache de stat velho
+  após a conversão para LF — conteúdo idêntico); decidir trocar o juiz (`ac-estavel.sh --refresh`).
+- Próximo: AC-18 (hook vê PowerShell/python.exe) em frente separada; AC-20 (harness nativo no Windows).
+
 ## Onde paramos (2026-10-06)
 - A skill virou PROJETO próprio (D-08): `~/Repositorios/auto-correcao`, branch `main`, primeiro commit
   "auto-correcao v0.4.1 — projeto completo de desenvolvimento". Conteúdo da skill = o HEAD do repo de origem

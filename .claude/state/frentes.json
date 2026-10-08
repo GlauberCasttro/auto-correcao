@@ -1,4 +1,27 @@
 {
   "versao": 1,
-  "frentes": []
+  "frentes": [
+    {
+      "nome": "win-motor",
+      "status": "entregue",
+      "campanha": "campanhas/win-motor",
+      "copia": "local/work/win-motor/auto-correcao",
+      "scope": [
+        "scripts/frase.py",
+        "scripts/ac.py",
+        "scripts/tests/**",
+        ".gitattributes",
+        "SKILL.md",
+        "README.md",
+        "docs/**"
+      ],
+      "problema": "Motor não roda no Windows: W1 frase.py sem console Windows (gate/preauth/conferir impossíveis); W2 load/status/results quebram em cp1252; W3 hash do oráculo por bytes muda com autocrlf (sem .gitattributes); W4 os.ttyname AttributeError; W5 python3 fixo nas instruções; W6 suíte scripts/tests não importa no Windows (pty); W7 prefixo de glob com '/' fixo. Auditoria: codebase-specialists/local/auditoria-windows-2026-10-07.md",
+      "parada": "1) oráculo da frente 100% verde no Windows nativo (python 3.12, Git Bash e PowerShell, sem PYTHONUTF8) E no WSL (python3 3.10); 2) scripts/tests sem falha nova no WSL e importando no Windows; 3) hook --selftest 83/83 nos dois; 4) founder define a frase e aprova um gate no PowerShell",
+      "paralela": false,
+      "aberta_em": "2026-10-08T02:16:15Z",
+      "ac_estavel": "local/ac-estavel/scripts/ac.py",
+      "commit": "3e81f493d44532a6f4d3196ab89e1271f0031e2a",
+      "fechada_em": "2026-10-08T12:58:22Z"
+    }
+  ]
 }
