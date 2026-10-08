@@ -20,7 +20,10 @@ local/      (no .gitignore) ac.py estável, cópias de trabalho, portões, termo
 
 ## Requisitos
 - Python **3.9+** (só a biblioteca padrão; testado em 3.13 e no `/usr/bin/python3` 3.9 do macOS), bash, git.
-- macOS ou Linux (a aprovação usa `pty`/tty real).
+- macOS ou Linux (a aprovação usa `pty`/tty real), ou Windows nativo: lá os exemplos com `python3` viram `python`
+  (ou `py -3`), ex.: `python ~/.claude/skills/auto-correcao/scripts/ac.py frase definir`. A frase só entra pelo
+  console (PowerShell ou Windows Terminal); no Git Bash, `winpty python .../ac.py ...`. Na suíte da skill, os testes
+  que precisam de `pty` são pulados no Windows (com o motivo).
 
 ## Instalar a skill a partir do projeto
 A skill é instalada por **link**, para que a evolução no projeto seja a skill em uso:
@@ -85,8 +88,9 @@ cd .claude/tools && PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s te
 ```
 
 ## Limites
-- Os testes da skill não dependem de recurso privado: rodam em qualquer máquina, sem pulos. Os que exercitam a
-  aprovação usam `pty` e um `HOME` temporário (a sua senha real nunca é lida).
+- Os testes da skill não dependem de recurso privado: rodam em qualquer máquina, sem pulos no macOS/Linux. Os que
+  exercitam a aprovação usam `pty` e um `HOME` temporário (a sua senha real nunca é lida); no Windows, sem `pty`,
+  esses são pulados com o motivo e os demais rodam.
 - Os oráculos em `campanhas/*/oraculo/` são históricos: testam a skill pelo caminho instalado
   (`~/.claude/skills/auto-correcao`), não a pasta em que estão.
 - O hook global é um filtro sintático, não uma sandbox; a garantia forte é a senha (veja `docs/07-limites.md`).

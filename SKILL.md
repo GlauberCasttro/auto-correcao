@@ -66,6 +66,11 @@ nega ao agente `ac.py … gate|preauth|frase` e `co.py … approve`. Cada aprova
 `quality.total` diferente da base (L02).
 Leia uma vez `references/licoes.json5` (o que custou caro aprender) antes da primeira etapa.
 
+**Windows nativo** (sem WSL): o interpretador é `python` (ou `py -3`), não `python3` — ex.:
+`python $AC/scripts/ac.py --work <campanha> status` (PowerShell: `py -3 <skill>\scripts\ac.py --work <campanha> status`).
+A frase de `gate`/`preauth`/`frase` só entra pelo console, sem eco: o founder digita no PowerShell ou no Windows
+Terminal. No Git Bash (mintty não é console), `winpty python $AC/scripts/ac.py ...`; sem isso, exit 2.
+
 ## Execução em etapas (uma janela de contexto por etapa)
 
 As etapas e o checklist de cada uma estão em `references/ciclo.json5` (fonte única). Ciclo de toda etapa:

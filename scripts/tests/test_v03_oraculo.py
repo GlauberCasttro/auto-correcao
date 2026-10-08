@@ -18,7 +18,6 @@ AC02.test_all_done_shows_concluida (portão stop pelo canal humano + `frase conf
 import importlib.util
 import json
 import os
-import pty
 import re
 import select
 import shutil
@@ -30,7 +29,7 @@ import time
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _pty_helper import FRASE_TESTE, PROMPT, frase_json_teste  # noqa: E402
+from _pty_helper import FRASE_TESTE, PROMPT, frase_json_teste, precisa_pty, pty  # noqa: E402  (pty: None sem ele)
 
 # raiz da skill: ORACULO_SKILL (portão em cópia limpa) ou a pasta que contém scripts/tests/ (o projeto ou o link
 # ~/.claude/skills/auto-correcao) — nunca um caminho fixo da máquina
@@ -66,7 +65,7 @@ class Base(unittest.TestCase):
         os.makedirs(os.path.join(self.target, "evals"))
         os.makedirs(os.path.join(self.target, "src"))
         self.grader = os.path.join(self.target, "evals", "grader.py")
-        with open(self.grader, "w") as fh:
+        with open(self.grader, "w", encoding="utf-8") as fh:
             fh.write("print('ok')\n")
         self.audit = os.path.join(self.tmp, "auditoria", "audit.jsonl")  # fora de self.work
         self.env = {k: v for k, v in os.environ.items() if not k.startswith("AC_")}
@@ -94,11 +93,11 @@ class Base(unittest.TestCase):
         return os.path.join(work or self.work, ".auto-correcao", "state.json")
 
     def state(self, work=None):
-        with open(self.state_path(work)) as fh:
+        with open(self.state_path(work), encoding="utf-8") as fh:
             return json.load(fh)
 
     def save_state(self, st, work=None):
-        with open(self.state_path(work), "w") as fh:
+        with open(self.state_path(work), "w", encoding="utf-8") as fh:
             json.dump(st, fh, indent=1, sort_keys=True)
 
     def forge_stop_gate(self):
@@ -118,13 +117,13 @@ class Base(unittest.TestCase):
     def round_file(self, rel, data, r=0):
         p = os.path.join(self.work, ".auto-correcao", "rounds", str(r), rel)
         os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p, "w") as fh:
+        with open(p, "w", encoding="utf-8") as fh:
             fh.write(data)
         return p
 
     def grading(self, passed, total, name):
         g = os.path.join(self.tmp, name)
-        with open(g, "w") as fh:
+        with open(g, "w", encoding="utf-8") as fh:
             json.dump({"summary": {"quality": {"passed": passed, "total": total},
                                    "structure": {"passed": 1, "total": 2}}}, fh)
         return g
@@ -133,7 +132,7 @@ class Base(unittest.TestCase):
         p = os.path.join(self.work, ".auto-correcao", "rounds", str(r), "runs.jsonl")
         if not os.path.isfile(p):
             return []
-        with open(p) as fh:
+        with open(p, encoding="utf-8") as fh:
             return [json.loads(l) for l in fh if l.strip()]
 
     # --- CLI dentro de um pseudo-terminal (o humano)
@@ -177,7 +176,7 @@ class Base(unittest.TestCase):
     def audit_lines(self):
         if not os.path.isfile(self.audit):
             return []
-        with open(self.audit) as fh:
+        with open(self.audit, encoding="utf-8") as fh:
             return [json.loads(l) for l in fh if l.strip()]
 
 
@@ -192,7 +191,7 @@ class AC01RemedicaoPosCorrecaoTest(Base):
         self.mark_done("intake", "oraculo", "base", "diagnostico", "plano")
         self.round_file("PLANO.json5", '{parada: "x", frentes: [{nome: "a", escreve: ["src/**"]}]}')
         rel = os.path.join(self.tmp, "rel-a.md")
-        with open(rel, "w") as fh:
+        with open(rel, "w", encoding="utf-8") as fh:
             fh.write("frente a: ok\n")
         code, out = self.cli("run", "record", "--config", "sistema", "--alvo", "py",
                              "--grading", self.grading(0, 6, "g-base.json"))  # execução da BASE
@@ -257,6 +256,7 @@ class AC02StatusEtapaTest(Base):
         self.assertEqual(self.state()["stage"], "base")
         self.assertRegex(self.cli("status")[1], r"etapa:\s*base\b")
 
+    @precisa_pty
     def test_all_done_shows_concluida(self):
         self.init()
         code, out, _ = self.cli_tty("gate", "stop", "--by", "founder", "--decision", "approve")  # v0.4: humano
@@ -299,7 +299,7 @@ class AC03TotalQualidadeTest(Base):
         self.assertNotEqual(self.cli("run", "record", "--config", "sistema", "--alvo", "py",
                                      "--grading", self.grading(8, 8, "x.json"))[0], 0)
         time.sleep(1.1)
-        with open(self.grader, "a") as fh:
+        with open(self.grader, "a", encoding="utf-8") as fh:
             fh.write("# +2 asserções de requisito\n")
         self.assertEqual(self.cli("oracle", "change", "--why", "requisito ampliado",
                                   "--evidence", "conferido à mão: grader.py linha 2")[0], 0)
@@ -356,6 +356,7 @@ class AC04aCanalHumanoTest(Base):
         self.assertNotEqual(self.cli("check", "intake.3")[0], 0,
                             "portão simulado gravado sem tty não pode satisfazer gate:stop")
 
+    @precisa_pty
     def test_gate_in_tty_with_phrase(self):
         self.init()
         code, out, n = self.cli_tty("gate", "stop", "--by", "founder", "--decision", "approve")
@@ -367,6 +368,7 @@ class AC04aCanalHumanoTest(Base):
         self.assertFalse(g.get("simulated"))
         self.assertEqual(self.cli("check", "intake.3")[0], 0)
 
+    @precisa_pty
     def test_gate_in_tty_wrong_phrase_refused(self):
         self.init()
         for chute in ("palavra errada aqui agora", "1234", ""):
@@ -376,6 +378,7 @@ class AC04aCanalHumanoTest(Base):
             self.assertNotIn("stop", self.state().get("gates") or {})
         self.assertEqual(self.audit_lines(), [], "tentativa errada não pode gravar auditoria")
 
+    @precisa_pty
     def test_preauth_in_tty_with_phrase(self):
         self.init()
         code, out, n = self.cli_tty("preauth", "commit", "--by", "founder", "--requires", "integracao.1",
@@ -387,12 +390,14 @@ class AC04aCanalHumanoTest(Base):
         self.assertEqual(code, 0, out)
         self.assertEqual(self.state()["preauth"]["commit"]["requires"], ["integracao.1"])
 
+    @precisa_pty
     def test_tag_varies_by_gate_and_seq(self):
         """v0.4: o que não pode ser pré-calculado é a tag — muda por portão e por seq (re-aprovação do mesmo)."""
         self.init()
         for name in ("x1", "x2", "x1"):
             self.assertEqual(self.cli_tty("gate", name, "--by", "founder", "--decision", "approve")[0], 0)
-        led = [json.loads(l) for l in open(os.path.join(self.work, ".auto-correcao", "ledger.jsonl")) if l.strip()]
+        with open(os.path.join(self.work, ".auto-correcao", "ledger.jsonl"), encoding="utf-8") as fh:
+            led = [json.loads(l) for l in fh if l.strip()]
         evs = [x for x in led if x.get("event") == "gate"]
         self.assertEqual(len(evs), 3)
         tags = [x.get("tag") for x in evs]
@@ -403,6 +408,7 @@ class AC04aCanalHumanoTest(Base):
 
 # ------------------------------------------------------------------ AC-04 (d) auditoria
 
+@precisa_pty
 class AC04dAuditoriaTest(Base):
     def test_each_approval_appends_audit_line_outside_work(self):
         self.init()
@@ -462,7 +468,7 @@ def bash(cmd, agent=False):
     return p
 
 
-ABS = AC
+ABS = AC.replace(os.sep, "/")  # caminho como o bash o escreve (no Windows, a barra invertida sem aspas é escape)
 DENY = [
     "python3 %s --work /tmp/c gate stop --by founder --decision approve" % ABS,
     "python3 ~/.claude/skills/auto-correcao/scripts/ac.py --work /tmp/c preauth commit --by f --requires integracao.1",
@@ -576,7 +582,7 @@ class L17CampanhasSobrepostasTest(Base):
         self._two("src/a/**", "docs/**")
         os.makedirs(os.path.join(self.target, "src", "a"))
         orc = os.path.join(self.target, "src", "a", "test_aceite.py")
-        with open(orc, "w") as fh:
+        with open(orc, "w", encoding="utf-8") as fh:
             fh.write("assert False\n")
         self.assertEqual(self.cli("oracle", "freeze", "--file", orc, work=self.wb)[0], 0)
         code, out = self.cli("overlap", "--other", self.wb, work=self.wa)

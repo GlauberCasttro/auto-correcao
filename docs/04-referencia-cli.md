@@ -5,6 +5,9 @@ python3 ~/.claude/skills/auto-correcao/scripts/ac.py --work <campanha> <comando>
 ```
 
 - Python 3.9+, só stdlib.
+- Windows nativo: troque `python3` por `python` (ou `py -3`) em todos os exemplos. `gate`, `preauth` e `frase`
+  leem a frase só pelo console (PowerShell ou Windows Terminal); no Git Bash use `winpty python .../ac.py ...` —
+  sem console, saem com exit 2.
 - `--work` é **obrigatório** em todo comando: o diretório da campanha (fora do alvo medido). O estado vai
   para `<work>/.auto-correcao/`. O caminho é resolvido com `realpath`.
 - Em zsh, não guarde o comando numa variável (não divide palavras). Use uma função:

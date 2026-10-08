@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import ac  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from _pty_helper import FRASE_TESTE, frase_json_teste, run_tty  # noqa: E402  (portão humano: pty real + frase)
+from _pty_helper import FRASE_TESTE, frase_json_teste, precisa_pty, run_tty  # noqa: E402  (portão humano: pty real + frase)
 
 REFS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "references")
 
@@ -30,7 +30,7 @@ class Base(unittest.TestCase):
         self.target = os.path.join(self.tmp, "alvo")
         os.makedirs(os.path.join(self.target, "evals"))
         self.grader = os.path.join(self.target, "evals", "grader.py")
-        with open(self.grader, "w") as fh:
+        with open(self.grader, "w", encoding="utf-8") as fh:
             fh.write("print('ok')\n")
 
     def human(self, *argv, frase=FRASE_TESTE):
@@ -51,7 +51,7 @@ class Base(unittest.TestCase):
     def write(self, rel, data):
         p = os.path.join(self.work, ".auto-correcao", "rounds", "0", rel)
         os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p, "w") as fh:
+        with open(p, "w", encoding="utf-8") as fh:
             fh.write(data)
         return p
 
@@ -69,6 +69,7 @@ class Json5Test(unittest.TestCase):
 
 
 class GatesTest(Base):
+    @precisa_pty
     def test_stop_criterion_needs_human_gate(self):
         self.init()
         code, out = run(self.work, "check", "intake.3")
@@ -92,7 +93,7 @@ class OracleTest(Base):
         self.init()
         self.assertEqual(run(self.work, "oracle", "freeze", "--file", self.grader)[0], 0)
         self.assertEqual(run(self.work, "oracle", "verify")[0], 0)
-        with open(self.grader, "a") as fh:
+        with open(self.grader, "a", encoding="utf-8") as fh:
             fh.write("# fazer passar\n")
         code, out = run(self.work, "oracle", "verify")
         self.assertEqual(code, 1)
@@ -126,6 +127,7 @@ class CalibrationTest(Base):
 class RequisitoModeTest(Base):
     """L15: requisito novo calibra por vazio≈0 + spec por arquivo + portão humano (não simulado)."""
 
+    @precisa_pty
     def test_requisito_mode(self):
         self.init()
         c = ac.Campaign(self.work)
@@ -143,6 +145,7 @@ class RequisitoModeTest(Base):
 
 
 class PreauthTest(Base):
+    @precisa_pty
     def test_preauth_conditional_and_human(self):
         self.init()
         c = ac.Campaign(self.work)
@@ -180,6 +183,7 @@ class PlanTest(Base):
         self.assertEqual(code, 1)
         self.assertIn("escreve no oráculo", out)
 
+    @precisa_pty
     def test_disjoint_plan_ok_and_product_decision_needs_gate(self):
         self.write("PLANO.json5", '{parada: "x", decisoes: [{id: "DEC-1", produto: true}],'
                                   'frentes: [{nome: "a", escreve: ["scripts/scan/**"]}, {nome: "b", escreve: ["SKILL.md"]}]}')
@@ -195,7 +199,7 @@ class RunsAndDefectsTest(Base):
         st = ac.Campaign(self.work)
         self.assertRaises(ac.Fail, ac.chk_runs, st, st.load(), ["--min", "1"])
         g = os.path.join(self.tmp, "grading.json")
-        with open(g, "w") as fh:
+        with open(g, "w", encoding="utf-8") as fh:
             json.dump({"summary": {"quality": {"passed": 13, "total": 13}, "structure": {"passed": 30, "total": 40}}}, fh)
         run(self.work, "run", "record", "--config", "sistema", "--alvo", "py", "--grading", g, "--tokens", "100")
         ac.chk_runs(st, st.load(), ["--min", "1", "--graded"])
@@ -280,7 +284,7 @@ class LockBypassTest(Base):
         run(self.work, "run", "record", "--config", "sistema", "--alvo", "py")
         self.assertRaises(ac.Fail, ac.chk_runs, c, c.load(), ["--graded"])
         g = os.path.join(self.tmp, "g.json")
-        with open(g, "w") as fh:
+        with open(g, "w", encoding="utf-8") as fh:
             json.dump({"summary": {"quality": {"passed": 1, "total": 1}}}, fh)
         run(self.work, "run", "record", "--config", "sistema", "--alvo", "py", "--grading", g)
         ac.chk_runs(c, c.load(), ["--graded"])
@@ -290,6 +294,7 @@ class LockBypassTest(Base):
         self.assertEqual(run(self.work, "run", "waive", "--config", "baseline")[0], 2)
         self.assertEqual(run(self.work, "front", "report", "x", "--file", "/nao/existe")[0], 2)
 
+    @precisa_pty
     def test_change_requires_prior_freeze_and_round_resets_gates(self):
         self.init()
         self.assertEqual(run(self.work, "oracle", "change", "--why", "a", "--evidence", "b")[0], 2)

@@ -15,7 +15,6 @@ import hmac
 import importlib.util
 import json
 import os
-import pty
 import re
 import select
 import shutil
@@ -27,6 +26,15 @@ import tempfile
 import time
 import unicodedata
 import unittest
+
+try:
+    import pty
+    import termios  # noqa: F401  (o ac.py desliga o eco por termios)
+except ImportError:  # Windows: não existem; o módulo importa e os testes de terminal são pulados
+    pty = None
+TEM_PTY = pty is not None and hasattr(os, "fork") and hasattr(os, "WEXITSTATUS") and hasattr(signal, "SIGKILL")
+precisa_pty = unittest.skipUnless(TEM_PTY, "precisa de pty/termios/os.fork/SIGKILL (terminal posix), "
+                                           "ausentes neste Python")
 
 # raiz da skill: ORACULO_SKILL (portão em cópia limpa) ou a pasta que contém scripts/tests/ (o projeto ou o link
 # ~/.claude/skills/auto-correcao) — nunca um caminho fixo da máquina
@@ -200,11 +208,11 @@ class Base(unittest.TestCase):
         return os.path.join(self.work, ".auto-correcao", "ledger.jsonl")
 
     def state(self):
-        with open(self.p_state()) as fh:
+        with open(self.p_state(), encoding="utf-8") as fh:
             return json.load(fh)
 
     def save_state(self, st):
-        with open(self.p_state(), "w") as fh:
+        with open(self.p_state(), "w", encoding="utf-8") as fh:
             json.dump(st, fh, indent=1, sort_keys=True)
 
     def raw(self, p):
@@ -226,7 +234,7 @@ class Base(unittest.TestCase):
         return (self.raw(self.p_state()), self.raw(self.p_ledger()), self.raw(self.audit))
 
     def fj(self, path=None):
-        with open(path or self.frase_file) as fh:
+        with open(path or self.frase_file, encoding="utf-8") as fh:
             return json.load(fh)
 
     def tag(self, frase, nome, decisao, seq, estado_hash, fj=None):
@@ -252,13 +260,13 @@ class Base(unittest.TestCase):
         if tag:
             rec["tag"] = tag(seq, eh) if callable(tag) else tag
         if ledger:
-            with open(self.p_ledger(), "a") as fh:
+            with open(self.p_ledger(), "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(rec, sort_keys=True) + "\n")
         if audit:
             a = dict(rec, cmd=event, work=self.work, user="ana", tty="/dev/ttys003")
             a.pop("event")
             os.makedirs(os.path.dirname(self.audit), exist_ok=True)
-            with open(self.audit, "a") as fh:
+            with open(self.audit, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(a, sort_keys=True) + "\n")
         if state and event == "gate":
             st = self.state()
@@ -270,6 +278,7 @@ class Base(unittest.TestCase):
 
 # ====================================================================== 1. frase definir
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R1FraseDefinirTest(Base):
     def test_definir_stores_only_salt_and_pbkdf2_verifier_mode_0600(self):
         self.definir()
@@ -299,7 +308,7 @@ class R1FraseDefinirTest(Base):
             if isinstance(v["iter"], int) and v["iter"] > 0:
                 v["verificador"] = _pbkdf2(norm(FRASE), v["salt_verificador"], v["iter"]).hex()
             with self.subTest(kdf=v["kdf"], iter=v["iter"]):
-                with open(self.frase_file, "w") as fh:
+                with open(self.frase_file, "w", encoding="utf-8") as fh:
                     json.dump(v, fh)
                 os.chmod(self.frase_file, 0o600)
                 snap = self.snapshot()
@@ -308,7 +317,7 @@ class R1FraseDefinirTest(Base):
                 self.assertEqual(self.snapshot(), snap)
                 self.assertNotEqual(self.conferir()[0], 0)
                 self.assertEqual(self.snapshot(), snap)
-        with open(self.frase_file, "w") as fh:  # controle: o original volta a aprovar
+        with open(self.frase_file, "w", encoding="utf-8") as fh:  # controle: o original volta a aprovar
             json.dump(orig, fh)
         self.assertEqual(self.gate("stop")[0], 0)
 
@@ -398,6 +407,7 @@ class R1FraseDefinirTest(Base):
 
 # ====================================================================== 2. gate/preauth com a frase
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R2AprovacaoComFraseTest(Base):
     def test_gate_with_phrase_records_tag_in_state_ledger_and_audit(self):
         self.definir()
@@ -472,6 +482,7 @@ class R2AprovacaoComFraseTest(Base):
 
 # ====================================================================== 3. frase conferir (forja à mão pega)
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R3ConferirTest(Base):
     def test_legit_approvals_confer_and_record_frase_conferida(self):
         self.pronto()
@@ -550,10 +561,10 @@ class R3ConferirTest(Base):
     def test_replay_by_copying_ledger_line_caught(self):
         """...e ainda copia a linha antiga do ledger (e do audit) para depois do round-new."""
         self._round_new_with_old_commit()
-        with open(self.p_ledger(), "a") as fh:
+        with open(self.p_ledger(), "a", encoding="utf-8") as fh:
             fh.write("".join(self.old_lines))
         au = [l for l in self.raw(self.audit).decode().splitlines(True) if '"commit"' in l]
-        with open(self.audit, "a") as fh:
+        with open(self.audit, "a", encoding="utf-8") as fh:
             fh.write("".join(au))
         st = self.state()
         st["gates"]["commit"] = self.old_commit
@@ -567,7 +578,7 @@ class R3ConferirTest(Base):
 
     def test_audit_line_missing_caught(self):
         self.pronto()
-        with open(self.audit, "w") as fh:
+        with open(self.audit, "w", encoding="utf-8") as fh:
             fh.write("")
         self._refused("stop")
 
@@ -575,7 +586,7 @@ class R3ConferirTest(Base):
         self.pronto()
         self.assertEqual(self.gate("commit")[0], 0)
         lines = self.raw(self.p_ledger()).decode().splitlines(True)
-        with open(self.p_ledger(), "w") as fh:  # agente trunca o ledger (some a aprovação do commit)
+        with open(self.p_ledger(), "w", encoding="utf-8") as fh:  # agente trunca o ledger (some a aprovação do commit)
             fh.write("".join(l for l in lines if '"commit"' not in l))
         self._refused("commit")
 
@@ -593,7 +604,7 @@ class R3ConferirTest(Base):
         salt_v, salt_k = os.urandom(16).hex(), os.urandom(16).hex()
         novo = dict(fj, salt_verificador=salt_v, salt_chave=salt_k)
         novo["verificador"] = kdf(OUTRA, salt_v, novo).hex()
-        with open(self.frase_file, "w") as fh:
+        with open(self.frase_file, "w", encoding="utf-8") as fh:
             json.dump(novo, fh)
         os.chmod(self.frase_file, 0o600)
         self.forge("commit", tag=lambda seq, eh: self.tag(OUTRA, "commit", "approve", seq, eh, fj=novo))
@@ -610,6 +621,7 @@ class R3ConferirTest(Base):
 
 # ====================================================================== 4. done decisao exige frase-conferida
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R4DoneDecisaoTest(Base):
     def _ate_decisao(self):
         self.pronto()
@@ -639,6 +651,7 @@ class R4DoneDecisaoTest(Base):
 
 # ====================================================================== 5. nenhum canal alternativo para a frase
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R5SemCanalAlternativoTest(Base):
     def test_frase_flag_refused(self):
         code, out = self.cli("frase", "definir", "--frase", FRASE, leak_ok=True)
@@ -695,6 +708,7 @@ class R5SemCanalAlternativoTest(Base):
 
 # ====================================================================== 6. forja por pty e por import
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R6ForjaTest(Base):
     def test_pty_agent_without_phrase_refused_with_phrase_accepted(self):
         self.definir()
@@ -747,8 +761,9 @@ def denies(code, out):
     return (j.get("hookSpecificOutput") or {}).get("permissionDecision") == "deny" or j.get("decision") == "block"
 
 
+AC_SH = AC.replace(os.sep, "/")  # caminho como o bash o escreve (no Windows, a barra invertida sem aspas é escape)
 DENY_FRASE = [
-    "python3 %s --work /tmp/c frase definir" % AC,
+    "python3 %s --work /tmp/c frase definir" % AC_SH,
     "python3 ~/.claude/skills/auto-correcao/scripts/ac.py --work /tmp/c frase conferir",
     "python3 ac.py --work /tmp/c frase conferir",
     "cd /x && ./ac.py --work . frase definir",
@@ -756,12 +771,12 @@ DENY_FRASE = [
     "sh -c 'python3 ac.py --work /tmp/c frase definir'",
     "python3 $AC --work /tmp/c frase conferir",
     "echo x | python3 ac.py --work /tmp/c frase definir",
-    "true; python3 '%s' '--work' /tmp/c 'frase' 'conferir'" % AC,
+    "true; python3 '%s' '--work' /tmp/c 'frase' 'conferir'" % AC_SH,
     "python3 -c 'import runpy,sys; sys.argv=[\"ac.py\",\"--work\",\"/tmp/c\",\"frase\",\"conferir\"]; "
-    "runpy.run_path(\"%s\", run_name=\"__main__\")'" % AC,
+    "runpy.run_path(\"%s\", run_name=\"__main__\")'" % AC_SH,
 ]
 ALLOW_FRASE = [
-    "grep -n frase %s" % AC,
+    "grep -n frase %s" % AC_SH,
     "cat ~/.claude/skills/auto-correcao/scripts/frase.py",
     "echo frase",
     "python3 other.py frase definir",
@@ -791,26 +806,26 @@ class R7HookTest(unittest.TestCase):
 # fica no ledger). Texto que não é executado (printf/echo para arquivo, mensagem de commit, grep) não conta.
 
 ALLOW_USO_REAL = [
-    "python3 %s --work /tmp/c front report frase --file /tmp/rel.md" % AC,
+    "python3 %s --work /tmp/c front report frase --file /tmp/rel.md" % AC_SH,
     "python3 ac.py --work /tmp/c front report gate --file /tmp/rel.md",
     "printf 'texto com frase e gate e preauth\\n' > /tmp/rel.md && python3 ac.py --work /tmp/c done correcao",
-    "printf 'texto com frase e gate' > /tmp/x.md; python3 %s --work /tmp/c set integration.tests_green true" % AC,
+    "printf 'texto com frase e gate' > /tmp/x.md; python3 %s --work /tmp/c set integration.tests_green true" % AC_SH,
     "echo 'ac.py gate stop e frase conferir' > /tmp/nota.md && python3 ac.py --work /tmp/c status",
     "git commit -F /tmp/msg.txt",
     "git commit -m 'ac.py: gate/preauth agora pedem a frase (frase conferir, frase definir)'",
     "grep -n frase ac.py",
-    "grep -n 'frase conferir\\|gate' %s" % AC,
+    "grep -n 'frase conferir\\|gate' %s" % AC_SH,
     "python3 ac.py --work /tmp/c oracle change --why x --evidence y",
 ]
 DENY_MANTIDO = [
     "python3 ac.py --work /tmp/c frase definir",
     "python3 ac.py --work=/tmp/c frase conferir",
-    "python3 %s --work /tmp/c gate stop --by f --decision approve" % AC,
+    "python3 %s --work /tmp/c gate stop --by f --decision approve" % AC_SH,
     "python3 ac.py --work /tmp/c preauth commit --by f --requires integracao.1",
     "sh -c 'python3 ac.py --work /tmp/c gate stop --by f --decision approve'",
     "printf 'x' > /tmp/a.md && python3 ac.py --work /tmp/c gate stop --by f --decision approve",
     "bash -s <<'EOF'\npython3 ac.py --work /tmp/c gate stop --by f --decision approve\nEOF",
-    "bash <<EOF\npython3 %s --work /tmp/c frase conferir\nEOF" % AC,
+    "bash <<EOF\npython3 %s --work /tmp/c frase conferir\nEOF" % AC_SH,
     "cat <<'EOF' | bash\npython3 ac.py --work /tmp/c preauth commit --by f --requires integracao.1\nEOF",
     "printf 'python3 ac.py --work /tmp/c gate stop --by f --decision approve' | sh",
 ]
@@ -855,6 +870,7 @@ class R8EscopoVirgulaTest(Base):
 LEGADO_TS = "2026-09-30T12:00:00Z"  # anterior a qualquer frase.json criado pelo teste
 
 
+@precisa_pty  # todo teste da classe passa pelo pty (definir/gate/conferir)
 class R9LegadoTest(Base):
     """Campanhas abertas sob a v0.3 têm aprovações SEM tag. Só as anteriores a frase.json.criada_em (e anteriores ao
     1º evento tagueado do ledger) são legadas; o founder as assina UMA vez com `frase conferir --assinar-legado`."""
@@ -876,10 +892,10 @@ class R9LegadoTest(Base):
             aud.append({"cmd": "preauth", "name": pa, "by": "founder", "requires": ["integracao.1"],
                         "work": self.work, "user": "ana", "tty": "/dev/ttys001", "ts": ts})
         self.save_state(st)
-        with open(self.p_ledger(), "a") as fh:
+        with open(self.p_ledger(), "a", encoding="utf-8") as fh:
             fh.write("".join(json.dumps(x, sort_keys=True) + "\n" for x in led))
         os.makedirs(os.path.dirname(self.audit), exist_ok=True)
-        with open(self.audit, "a") as fh:
+        with open(self.audit, "a", encoding="utf-8") as fh:
             fh.write("".join(json.dumps(x, sort_keys=True) + "\n" for x in aud))
 
     def campanha_v03(self):

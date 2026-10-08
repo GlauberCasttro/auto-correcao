@@ -3,18 +3,31 @@
 Sem variável de bypass: o filho recebe um pty como stdin/stdout/tty controlador; a cada prompt `FRASE...:` (eco já
 desligado pelo ac.py) o helper digita a próxima resposta de `answers` (esgotou → linha vazia). A frase de teste só
 vale porque o teste grava, num AC_FRASE_FILE temporário, um frase.json gerado com ela (`frase_json_teste`).
+
+Sem `pty`/`termios`/`os.fork`/`SIGKILL` (Windows), o módulo importa igual: `TEM_PTY` fica False e os testes que
+passam por `run_tty` levam `@precisa_pty` (pulados com o motivo). No macOS/Linux tudo roda como antes.
 """
 import datetime
 import hashlib
 import json
 import os
-import pty
 import re
 import select
 import signal
 import sys
 import time
 import unicodedata
+import unittest
+
+try:
+    import pty
+    import termios  # noqa: F401  (o ac.py desliga o eco por termios; sem ele não há caminho do humano a testar)
+except ImportError:  # Windows: não existem
+    pty = None
+
+TEM_PTY = pty is not None and hasattr(os, "fork") and hasattr(os, "WEXITSTATUS") and hasattr(signal, "SIGKILL")
+MOTIVO_SEM_PTY = "precisa de pty/termios/os.fork/SIGKILL (terminal posix), ausentes neste Python"
+precisa_pty = unittest.skipUnless(TEM_PTY, MOTIVO_SEM_PTY)
 
 AC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ac.py")
 PROMPT = re.compile(rb"FRASE[^\r\n:]*:")
@@ -36,7 +49,7 @@ def frase_json_teste(path, frase=FRASE_TESTE):
                       "verificador": _derivar(frase, sv, ITER).hex(),
                       "criada_em": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump(_FJ[frase], fh)
     os.chmod(path, 0o600)
     return path
